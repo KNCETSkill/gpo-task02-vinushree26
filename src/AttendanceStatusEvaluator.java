@@ -11,7 +11,7 @@ public class AttendanceStatusEvaluator {
         } else if (attendance >= 60) {
             System.out.print("Satisfactory");
         } else {
-            System.out.print("Poor");
+            System.out.print("Por");
         }
 
         sc.close();
