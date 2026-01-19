@@ -1,6 +1,8 @@
-name: Java Autograding - Attendance Status Evaluator
+name: Autograding Tests
 
-on: [push]
+on:
+  - push
+  - repository_dispatch
 
 permissions:
   checks: write
@@ -8,12 +10,13 @@ permissions:
   contents: read
 
 jobs:
-  autograde:
+  run-autograding-tests:
     runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Java
         uses: actions/setup-java@v3
@@ -21,45 +24,84 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Compile
-        run: javac src/AttendanceStatusEvaluator.java
+      # ---------- SAMPLE TEST CASES ----------
 
-      - name: Run All Test Cases
-        run: |
-          score=0
-          max_score=50
-          all_passed=true
-          tests=()
+      - name: Sample 1
+        id: sample-1
+        uses: classroom-resources/autograding-io-grader@v1
+        with:
+          test-name: Sample 1
+          setup-command: javac src/AttendanceStatusEvaluator.java
+          command: java -cp src AttendanceStatusEvaluator
+          input: "90"
+          expected-output: "Excellent"
+          comparison-method: exact
+          timeout: 10
+          max-score: 10
 
-          test() {
-            input=$1
-            expected=$2
-            output=$(echo "$input" | java -cp src AttendanceStatusEvaluator)
+      - name: Sample 2
+        id: sample-2
+        uses: classroom-resources/autograding-io-grader@v1
+        with:
+          test-name: Sample 2
+          setup-command: javac src/AttendanceStatusEvaluator.java
+          command: java -cp src AttendanceStatusEvaluator
+          input: "75"
+          expected-output: "Satisfactory"
+          comparison-method: exact
+          timeout: 10
+          max-score: 10
 
-            if [ "$output" = "$expected" ]; then
-              echo "PASS: Input=$input Output=$output"
-              score=$((score+10))
-              tests+=("{\"name\":\"Input $input\",\"score\":10,\"max_score\":10,\"output\":\"PASS\"}")
-            else
-              echo "FAIL: Input=$input Expected=$expected Got=$output"
-              all_passed=false
-              tests+=("{\"name\":\"Input $input\",\"score\":0,\"max_score\":10,\"output\":\"FAIL: Expected $expected Got $output\"}")
-            fi
-          }
+      # ---------- HIDDEN TEST CASES ----------
 
-          # Test cases
-          test 90 Excellent
-          test 75 Satisfactory
-          test 45 Poor
-          test 60 Satisfactory
-          test 85 Satisfactory
+      - name: Hidden 1
+        id: hid-1
+        uses: classroom-resources/autograding-io-grader@v1
+        with:
+          test-name: Hidden 1
+          setup-command: javac src/AttendanceStatusEvaluator.java
+          command: java -cp src AttendanceStatusEvaluator
+          input: "45"
+          expected-output: "Poor"
+          comparison-method: exact
+          timeout: 10
+          max-score: 10
 
-          echo "🎯 TOTAL SCORE: $score / $max_score"
+      - name: Hidden 2
+        id: hid-2
+        uses: classroom-resources/autograding-io-grader@v1
+        with:
+          test-name: Hidden 2
+          setup-command: javac src/AttendanceStatusEvaluator.java
+          command: java -cp src AttendanceStatusEvaluator
+          input: "60"
+          expected-output: "Satisfactory"
+          comparison-method: exact
+          timeout: 10
+          max-score: 10
 
-          # Create results.json for GitHub Classroom
-          echo "{\"tests\": [$(IFS=,; echo "${tests[*]}")]}" > results.json
+      - name: Hidden 3
+        id: hid-3
+        uses: classroom-resources/autograding-io-grader@v1
+        with:
+          test-name: Hidden 3
+          setup-command: javac src/AttendanceStatusEvaluator.java
+          command: java -cp src AttendanceStatusEvaluator
+          input: "85"
+          expected-output: "Satisfactory"
+          comparison-method: exact
+          timeout: 10
+          max-score: 10
 
-          # Fail workflow if any test failed
-          if [ "$all_passed" = false ]; then
-            exit 1
-          fi
+      # ---------- AUTOGRADING REPORT ----------
+
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          SAMPLE-1_RESULTS: "${{steps.sample-1.outputs.result}}"
+          SAMPLE-2_RESULTS: "${{steps.sample-2.outputs.result}}"
+          HID-1_RESULTS: "${{steps.hid-1.outputs.result}}"
+          HID-2_RESULTS: "${{steps.hid-2.outputs.result}}"
+          HID-3_RESULTS: "${{steps.hid-3.outputs.result}}"
+        with:
+          runners: sample-1,sample-2,hid-1,hid-2,hid-3
